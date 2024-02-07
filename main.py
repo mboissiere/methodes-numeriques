@@ -9,7 +9,7 @@ T0, T1, Ta = 293.15, 373.15, 293.15  # temperatures in Kelvin (initial, boundary
 a = 1.11e-4  # thermal diffusivity of copper in m²/s
 lambd = 401.0  # thermal conductivity of copper in W/(m·K)
 h = 10.0  # heat transfer coefficient for air in W/(m²·K)
-Nx, Ny = 100, 100  # number of grid points
+Nx, Ny = 25, 25  # number of grid points
 dx, dy = Lx / (Nx - 1), Ly / (Ny - 1)  # grid spacings
 dt = 0.01  # time step
 beta = h / lambd  # non-dimensional parameter
@@ -23,8 +23,8 @@ T = np.full((Nx, Ny), T0)
 fig, ax = plt.subplots()
 
 # Initial plot
-im = ax.imshow(T, origin='lower', extent=[0, Lx, 0, Ly])
-fig.colorbar(im)
+im = ax.imshow(T, origin='lower', extent=[0, Lx, 0, Ly], cmap='coolwarm')
+fig.colorbar(im, cmap='coolwarm')
 
 
 # Update function for the animation
