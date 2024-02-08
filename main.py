@@ -35,30 +35,30 @@ fig.colorbar(im, cmap='coolwarm')
 def update(frame):
     # First half step
     T_half = np.copy(T)
-    for j in range(Ny):
-        A_x = np.zeros((3, Nx))
-        A_x[0, 1:] = -Fx
+    for j in range(1, Ny):  # start from 1 to exclude the first row
+        A_x = np.zeros((3, Nx - 1))
+        A_x[0, 1:] = -Fx / 2
         A_x[1, :] = 1 + Fx
-        A_x[2, :-1] = -Fx
+        A_x[2, :-1] = -Fx / 2
 
-        b_x = Fy * T[:-1, j] + (1 - Fy) * T[:, j] + Fy * T[1:, j]
+        b_x = Fy / 2 * np.roll(T, 1, axis=0)[:-1, j] + (1 - Fy) * T[:-1, j] + Fy / 2 * np.roll(T, -1, axis=0)[1:, j]
         b_x[0] += T1
-        b_x[-1] -= h * dx / lambd * Ta
+        b_x[-1] += h * dx / lambd * Ta
 
-        T_half[:, j] = solve_banded((1, 1), A_x, b_x)
+        T_half[:-1, j] = solve_banded((1, 1), A_x, b_x)
 
     # Second half step
     for i in range(Nx):
-        A_y = np.zeros((3, Ny))
-        A_y[0, 1:] = -Fy
+        A_y = np.zeros((3, Ny - 1))
+        A_y[0, 1:] = -Fy / 2
         A_y[1, :] = 1 + Fy
-        A_y[2, :-1] = -Fy
+        A_y[2, :-1] = -Fy / 2
 
-        b_y = Fx * T_half[i, :-1] + (1 - Fx) * T_half[i, :] + Fx * T_half[i, 1:]
+        b_y = Fx / 2 * np.roll(T_half, 1, axis=1)[i, :-1] + (1 - Fx) * T_half[i, :-1] + Fx / 2 * np.roll(T_half, -1, axis=1)[i, 1:]
         b_y[0] -= T1
-        b_y[-1] += h * dx / lambd * Ta
+        b_y[-1] -= h * dx / lambd * Ta
 
-        T[i, :] = solve_banded((1, 1), A_y, b_y)
+        T[i, :-1] = solve_banded((1, 1), A_y, b_y)
 
     # Update the image
     im.set_array(T)
