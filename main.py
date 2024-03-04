@@ -55,7 +55,7 @@ def update(t):
     T_half = np.copy(T)
     for j in range(1, Ny):  # start from 1 to exclude the first row
         A_x = np.zeros((3, Nx - 1))
-        A_x[0, 1:] = -Fx / 2
+        A_x[0, 1:] = -Fx / 2        
         A_x[1, :] = 1 + Fx
         A_x[2, :-1] = -Fx / 2
 
