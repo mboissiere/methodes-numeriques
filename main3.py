@@ -105,7 +105,7 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
     colorbar = fig.colorbar(im, ax=ax)
     colorbar.set_label('Température')
 
-    for it in range(nt):
+    while it*dt < nt:
         T_old = T.copy()
 
         # Étape 1 : résoudre dans la direction x
@@ -143,6 +143,7 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
         im.set_data(T)
         ax.set_title(f"Profil de température à l'étape {it*dt}")
         plt.pause(0.01)
+        it += dt
 
     return T
 
