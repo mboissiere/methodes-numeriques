@@ -142,7 +142,7 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
 
         # Mettre à jour l'image à chaque étape
         im.set_data(T)
-        ax.set_title(f"Profil de température à l'étape {it*dt}")
+        ax.set_title(f"Profil de température à l'étape {it}")
         plt.pause(0.01)
         it += dt
 
