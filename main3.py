@@ -4,10 +4,10 @@ import math
 from scipy.optimize import fsolve
 
 # Paramètres
-nx, ny = 50, 50 # Mise à jour des valeurs de nx et ny
-Lx, Ly = 1, 1   # Mise à jour des valeurs de Lx et Ly
-nt = 1000
-dt = 1
+nx, ny = 100, 50 # Mise à jour des valeurs de nx et ny
+Lx, Ly = 10, 5   # Mise à jour des valeurs de Lx et Ly
+nt = 10000
+dt = 50
 dx = Lx/(nx-1)
 dy = Ly/(ny-1)
 h = 10
@@ -141,7 +141,7 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
 
         # Mettre à jour l'image à chaque étape
         im.set_data(T)
-        ax.set_title(f"Profil de température à l'étape {it+1}")
+        ax.set_title(f"Profil de température à l'étape {it*dt}")
         plt.pause(0.01)
 
     return T
