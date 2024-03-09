@@ -3,6 +3,20 @@ import matplotlib.pyplot as plt
 import math
 from scipy.optimize import fsolve
 
+# Paramètres
+nx, ny = 50, 50 # Mise à jour des valeurs de nx et ny
+Lx, Ly = 1, 1   # Mise à jour des valeurs de Lx et Ly
+nt = 1000
+dt = 1
+dx = Lx/(nx-1)
+dy = Ly/(ny-1)
+h = 10
+T0, T1, Ta = 273.15, 373.15, 293.15  #Températures en Kelvin (initiale, au bord, et ambiante)
+k = 380.0  # Conductivité thermique du cuivre en W/(m·K)
+rho = 8960.0  # Densité du cuivre en kg/m³
+cp = 385.0  # Capacité thermique du cuivre en J/(kg·K)
+alpha = k / (rho * cp)  # Diffusivité thermique du cuivre en m²/s
+
 def equation(x, L, h, l):
     return x * np.tan(L * x) - h / l
 
@@ -23,15 +37,15 @@ def serie(Lx, Ly, h, l, x, y, n):
     for k in range(0, n+1):
         a = liste_solutions[k]
         x_k = (np.cos(a*x)*np.cosh(a*(Ly-y)))/(((a**2+(h/l)**2)*Lx+h/l)*np.cos(a*Lx)*np.cosh(a*Ly))
-        print(x_k)
+        # print(x_k)
         sum += x_k
-    print("sum =", sum)
+    # print("sum =", sum)
     return sum
 
 def generate_analytical_profile(nx, ny, Lx, Ly, T1, Ta, h, k, n):
     # Définir les pas en x et y
-    dx = 0.15*Lx/(nx-1)
-    dy = 0.15*Ly/(ny-1)
+    dx = Lx/(nx-1)
+    dy = Ly/(ny-1)
 
     # Créer des grilles de points x et y
     x = np.linspace(0, Lx, nx)
@@ -132,19 +146,6 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
 
     return T
 
-# Paramètres
-nx, ny = 50, 50 # Mise à jour des valeurs de nx et ny
-Lx, Ly = 1, 1   # Mise à jour des valeurs de nx et ny
-nt = 50
-dt = 0.1
-dx = 0.15*Lx/(nx-1)
-dy = 0.15*Ly/(ny-1)
-h = 10
-T0, T1, Ta = 273.15, 373.15, 293.15  # temperatures in Kelvin (initial, boundary, and ambient)
-k = 380.0  # thermal conductivity of copper in W/(m·K)
-rho = 8960.0  # density of copper in kg/m³
-cp = 385.0  # thermal capacity of copper in J/(kg·K)
-alpha = k / (rho * cp)  # thermal diffusivity of copper in m²/s
 
 # # # Initialiser le profil de température à T0
 T = np.full((nx, ny), T0)
