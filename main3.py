@@ -4,10 +4,10 @@ import math
 from scipy.optimize import fsolve
 
 # Paramètres
-nx, ny = 100, 50 # Mise à jour des valeurs de nx et ny
-Lx, Ly = 10, 5   # Mise à jour des valeurs de Lx et Ly
-nt = 10000
-dt = 50
+nx, ny = 100, 50  # Mise à jour des valeurs de nx et ny
+Lx, Ly = 20, 10  # Mise à jour des valeurs de Lx et Ly
+nt = 100000
+dt = 500
 dx = Lx/(nx-1)
 dy = Ly/(ny-1)
 h = 10
