@@ -4,10 +4,10 @@ import math
 from scipy.optimize import fsolve
 
 # Paramètres
-nx, ny = 100, 50  # Mise à jour des valeurs de nx et ny
-Lx, Ly = 20, 10  # Mise à jour des valeurs de Lx et Ly
-nt = 100000
-dt = 500
+nx, ny = 100, 50 # Mise à jour des valeurs de nx et ny
+Lx, Ly = 10, 5   # Mise à jour des valeurs de Lx et Ly
+nt = 1000
+dt = 1
 dx = Lx/(nx-1)
 dy = Ly/(ny-1)
 h = 10
@@ -52,7 +52,10 @@ def generate_analytical_profile(nx, ny, Lx, Ly, T1, Ta, h, k, n):
     y = np.linspace(0, Ly, ny)
 
     # Initialiser le profil analytique
-    T_analytical = np.zeros((nx, ny))
+    # Attention à une convention contre-intuitive de Numpy pour les tableaux 2D :
+    # np.zeros((ny, nx)) crée un tableau de taille ny x nx, c'est-à-dire avec ny lignes et nx colonnes.
+    # C'est bien ce qu'on veut, car les lignes de la grille correspondent à l'axe y et les colonnes à l'axe x.
+    T_analytical = np.zeros((ny, nx))
 
     # Calculer le profil analytique en utilisant une formule spécifique
     for i in range(nx):
@@ -61,13 +64,21 @@ def generate_analytical_profile(nx, ny, Lx, Ly, T1, Ta, h, k, n):
             y = j/ny
             # Mettre en œuvre la formule analytique en fonction de x, y et d'autres paramètres
             sum = serie(Lx, Ly, h, k, x, y, n)
-            T_analytical[i, j] = (Ta + 2*(T1-Ta)*sum*10/401)
+            T_analytical[j, i] = (Ta + 2*(T1-Ta)*sum*10/401)  # Pour la transposition également, modif de T_analytical[i, j] en T_analytical[j, i]
 
+    #plotted_T_analytical = np.transpose(T_analytical)  # Transposer le tableau : la façon dont Numpy le fait sinon, ne respecte pas l'intuition géométrique imposée.
+    plotted_T_analytical = T_analytical
     # Tracer le profil analytique
     fig, ax = plt.subplots(figsize=(6, 6))
-    im = ax.imshow(T_analytical, cmap='hot', interpolation='nearest')
+    im = ax.imshow(plotted_T_analytical, cmap='hot', interpolation='nearest')
     colorbar = fig.colorbar(im, ax=ax)
     colorbar.set_label('Température')
+    plt.xlabel('x')
+    plt.ylabel('y')
+    ax.set_xticks(np.linspace(0, nx-1, 5))
+    ax.set_xticklabels(np.linspace(0, Lx, 5))
+    ax.set_yticks(np.linspace(0, ny-1, 5))
+    ax.set_yticklabels(np.linspace(0, Ly, 5))
     # plt.imshow(T_analytical, cmap='hot', origin='lower', extent=[0, Lx, 0, Ly])
     # plt.colorbar(label='Température')
     # plt.xlabel('x')
@@ -105,58 +116,76 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
     colorbar = fig.colorbar(im, ax=ax)
     colorbar.set_label('Température')
 
-    it = 0
-    while it < nt:
+    for it in range(nt):
         T_old = T.copy()
 
         # Étape 1 : résoudre dans la direction x
-        for j in range(1, ny-1):
+        for i in range(1, nx-1):
             a = np.full(nx-1, -alpha*dt/(2*dx**2))
             b = np.full(nx-1, 1 + alpha*dt/(dx**2))
             c = np.full(nx-1, -alpha*dt/(2*dx**2))
-            d = T_old[1:-1, j] + alpha*dt/(2*dy**2) * (T_old[1:-1, j+1] - 2*T_old[1:-1, j] + T_old[1:-1, j-1])
+            print("Size of c in x direction :")
+            print(np.size(c))
+            d = T_old[i, 1:-1] + alpha*dt/(2*dy**2) * (T_old[i+1, 1:-1] - 2*T_old[i, 1:-1] + T_old[i-1, 1:-1])
+            print("Size of d in x direction :")
+            print(np.size(d))
 
             # Appliquer les conditions aux limites
-            d[0] += alpha*dt/(2*dx**2) * T_old[0, j]
-            d[-1] += alpha*dt/(2*dx**2) * (2*dx*h*(Ta-T_old[-1, j])/(2*dx*h+alpha) + T_old[-2, j])
+            d[0] += alpha*dt/(2*dx**2) * T1
+            d[-1] += alpha*dt/(2*dx**2) * T_old[i, -2]
 
-            T[1:-1, j] = TDMA(a, b, c, d)
+            T[i, 1:-1] = TDMA(a, b, c, d)
 
         # Appliquer la condition de conducto-convection à x = Lx
-        T[-1, :] = (2*dx*h*Ta + k*T[-2, :]) / (2*dx*h + k)
+        T[:, -1] = (2*dy*h*Ta + k*T[:, -2]) / (2*dy*h + k)
 
         T_old = T.copy()
 
         # Étape 2 : résoudre dans la direction y
-        for i in range(1, nx-1):
+        for j in range(1, ny-1):
             a = np.full(ny-1, -alpha*dt/(2*dy**2))
             b = np.full(ny-1, 1 + alpha*dt/(dy**2))
             c = np.full(ny-1, -alpha*dt/(2*dy**2))
-            d = T_old[i, 1:-1] + alpha*dt/(2*dx**2) * (T_old[i+1, 1:-1] - 2*T_old[i, 1:-1] + T_old[i-1, 1:-1])
+            print("Size of c in x direction :")
+            print(np.size(c))
+            d = T_old[j, 1:-1] + alpha*dt/(2*dx**2) * (T_old[j+1, 1:-1] - 2*T_old[j, 1:-1] + T_old[j-1, 1:-1])
+            print("Size of d in y direction :")
+            print(np.size(d))
 
             # Appliquer les conditions aux limites
-            d[0] += alpha*dt/(2*dy**2) * T1
-            d[-1] += alpha*dt/(2*dy**2) * T_old[i, -2]
+            d[0] += alpha*dt/(2*dy**2) * T_old[0, j]
+            d[-1] += alpha*dt/(2*dy**2) * (2*dy*h*(Ta-T_old[-1, j])/(2*dy*h+alpha) + T_old[-2, j])
 
-            T[i, 1:-1] = TDMA(a, b, c, d)
+            T[1:-1, j] = TDMA(a, b, c, d)
 
+        #plotted_T = np.transpose(T)  # Transposer le tableau : la façon dont Numpy le fait sinon, ne respecte pas l'intuition géométrique imposée.
+        plotted_T = T
         # Mettre à jour l'image à chaque étape
-        im.set_data(T)
-        ax.set_title(f"Profil de température à l'étape {it}")
+        im.set_data(plotted_T)
+        ax.set_title(f"Profil de température à l'étape {it+1}")
+        plt.xlabel('x')
+        plt.ylabel('y')
+        ax.set_xticks(np.linspace(0, nx-1, 5))
+        ax.set_xticklabels(np.linspace(0, Lx, 5))
+        ax.set_yticks(np.linspace(0, ny-1, 5))
+        ax.set_yticklabels(np.linspace(0, Ly, 5))
+
+        # Add the text displaying "nx = ..." and "ny = ..."
+        plt.text(0.5, 0.5, f"nx = {nx}\nny = {ny}", transform=ax.transAxes)
+
         plt.pause(0.01)
-        it += dt
 
     return T
 
 
-# # # Initialiser le profil de température à T0
-T = np.full((nx, ny), T0)
+# Initialiser le profil de température à T0
+T = np.full((ny, nx), T0)
 
 # Appliquer les conditions aux limites initiales
-T[:, 0] = T1
-T[0, :] = T[1, :]
-T[-1, :] = T[-2, :]
-T[:, -1] = (2*dy*h*Ta + k*T[:, -2]) / (2*dy*h + k)
+T[0, :] = T1
+T[:, 0] = T[:, 1]
+T[:, -1] = T[:, -2]
+T[-1, :] = (2*dy*h*Ta + k*T[-2, :]) / (2*dy*h + k)
 
 # Exécuter la méthode ADI
 T = ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k)
@@ -168,13 +197,13 @@ print(liste_solutions)
 
 
 T_analytical = generate_analytical_profile(nx, ny, Lx, Ly, T1, Ta, h, k, 3)
-T_inverse = np.flipud(T_analytical)
-Delta = T_inverse - T
+# T_inverse = np.flipud(T_analytical) Normalement y a plus besoin
+Delta = T_analytical - T
 print(Delta)
 
 plt.imshow(Delta, origin='lower')
 plt.colorbar(label='Valeurs de T')
 plt.xlabel('Axe x')
-plt.ylabel('Axe y (inversé)')
+plt.ylabel('Axe y')
 plt.title('Delta')
 plt.show()
