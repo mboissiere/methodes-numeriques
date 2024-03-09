@@ -64,7 +64,7 @@ def generate_analytical_profile(nx, ny, Lx, Ly, T1, Ta, h, k, n):
             y = j/ny
             # Mettre en œuvre la formule analytique en fonction de x, y et d'autres paramètres
             sum = serie(Lx, Ly, h, k, x, y, n)
-            T_analytical[i, j] = (Ta + 2*(T1-Ta)*sum*10/401)
+            T_analytical[j, i] = (Ta + 2*(T1-Ta)*sum*10/401)  # Pour la transposition également, modif de T_analytical[i, j] en T_analytical[j, i]
 
     #plotted_T_analytical = np.transpose(T_analytical)  # Transposer le tableau : la façon dont Numpy le fait sinon, ne respecte pas l'intuition géométrique imposée.
     plotted_T_analytical = T_analytical
@@ -124,7 +124,11 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
             a = np.full(nx-1, -alpha*dt/(2*dx**2))
             b = np.full(nx-1, 1 + alpha*dt/(dx**2))
             c = np.full(nx-1, -alpha*dt/(2*dx**2))
+            print("Size of c in x direction :")
+            print(np.size(c))
             d = T_old[i, 1:-1] + alpha*dt/(2*dy**2) * (T_old[i+1, 1:-1] - 2*T_old[i, 1:-1] + T_old[i-1, 1:-1])
+            print("Size of d in x direction :")
+            print(np.size(d))
 
             # Appliquer les conditions aux limites
             d[0] += alpha*dt/(2*dx**2) * T1
@@ -142,7 +146,11 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
             a = np.full(ny-1, -alpha*dt/(2*dy**2))
             b = np.full(ny-1, 1 + alpha*dt/(dy**2))
             c = np.full(ny-1, -alpha*dt/(2*dy**2))
-            d = T_old[1:-1, j] + alpha*dt/(2*dx**2) * (T_old[1:-1, j+1] - 2*T_old[1:-1, j] + T_old[1:-1, j-1])
+            print("Size of c in x direction :")
+            print(np.size(c))
+            d = T_old[j, 1:-1] + alpha*dt/(2*dx**2) * (T_old[j+1, 1:-1] - 2*T_old[j, 1:-1] + T_old[j-1, 1:-1])
+            print("Size of d in y direction :")
+            print(np.size(d))
 
             # Appliquer les conditions aux limites
             d[0] += alpha*dt/(2*dy**2) * T_old[0, j]
@@ -189,13 +197,13 @@ print(liste_solutions)
 
 
 T_analytical = generate_analytical_profile(nx, ny, Lx, Ly, T1, Ta, h, k, 3)
-T_inverse = np.flipud(T_analytical)
-Delta = T_inverse - T
+# T_inverse = np.flipud(T_analytical) Normalement y a plus besoin
+Delta = T_analytical - T
 print(Delta)
 
 plt.imshow(Delta, origin='lower')
 plt.colorbar(label='Valeurs de T')
 plt.xlabel('Axe x')
-plt.ylabel('Axe y (inversé)')
+plt.ylabel('Axe y')
 plt.title('Delta')
 plt.show()
