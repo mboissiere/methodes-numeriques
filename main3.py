@@ -106,7 +106,7 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
     colorbar.set_label('Température')
 
     it = 0
-    while it*dt < nt:
+    while it < nt:
         T_old = T.copy()
 
         # Étape 1 : résoudre dans la direction x
