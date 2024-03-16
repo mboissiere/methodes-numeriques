@@ -5,10 +5,10 @@ import math
 from scipy.optimize import fsolve
 
 # Paramètres
-nx, ny = 100, 100  # Mise à jour des valeurs de nx et ny
-Lx, Ly = 1, 1  # Mise à jour des valeurs de Lx et Ly
-nt = 1000
-dt = 1
+nx, ny = 100, 50  # Mise à jour des valeurs de nx et ny
+Lx, Ly = 10, 5  # Mise à jour des valeurs de Lx et Ly
+nt = 10000
+dt = 10
 dx = Lx/(nx-1)
 dy = Ly/(ny-1)
 h = 10
@@ -22,7 +22,7 @@ alpha = k / (rho * cp)  # Diffusivité thermique du cuivre en m²/s
 Fx = alpha*dt/dx**2
 Fy = alpha*dt/dy**2
 
-print(f'Fx + Fy = {Fx + Fy:.2f}')
+# print(f'Fx + Fy = {Fx + Fy:.2f}')
 
 
 
@@ -107,7 +107,7 @@ def TDMA(a, b, c, d):
     return p
 
 # Méthode ADI
-def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
+def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k, eps):
     # Créer la figure en dehors de la boucle
     fig, ax = plt.subplots(figsize=(6, 6))
     im = ax.imshow(T, cmap='hot', interpolation='nearest')
@@ -117,10 +117,11 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
     it = 0
     images = []  # Liste pour stocker les images de chaque étape
 
-    # Create the Text object for the title
+    max_diff = np.inf
+    max_diff_values = []
     
 
-    while it <= nt:
+    while it <= nt and max_diff > eps:
         T_old = T.copy()
 
         # Étape 1 : résoudre dans la direction x
@@ -139,21 +140,24 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
         # Appliquer la condition de conducto-convection à x = Lx
         T[-1, :] = (2*dx*h*Ta + k*T[-2, :]) / (2*dx*h + k)
 
-        T_old = T.copy()
+        T_semiold = T.copy()
 
         # Étape 2 : résoudre dans la direction y
         for i in range(1, nx-1):
             a = np.full(ny-1, -alpha*dt/(2*dy**2))
             b = np.full(ny-1, 1 + alpha*dt/(dy**2))
             c = np.full(ny-1, -alpha*dt/(2*dy**2))
-            d = T_old[i, 1:-1] + alpha*dt/(2*dx**2) * (T_old[i+1, 1:-1] - 2*T_old[i, 1:-1] + T_old[i-1, 1:-1])
+            d = T_semiold[i, 1:-1] + alpha*dt/(2*dx**2) * (T_semiold[i+1, 1:-1] - 2*T_semiold[i, 1:-1] + T_semiold[i-1, 1:-1])
 
             # Appliquer les conditions aux limites
             d[0] += alpha*dt/(2*dy**2) * T1
-            d[-1] += alpha*dt/(2*dy**2) * T_old[i, -2]
+            d[-1] += alpha*dt/(2*dy**2) * T_semiold[i, -2]
 
             T[i, 1:-1] = TDMA(a, b, c, d)
 
+        max_diff = np.max(np.abs(T - T_old))
+        max_diff_values.append(max_diff)
+        print(f"Etape {it}, difference maximale = {max_diff:.2f}, tolerance = {eps:.2f}")
         # Mettre à jour l'image à chaque étape
         im = ax.imshow(T, cmap='hot', interpolation='nearest')
         # plt.pause(0.01)
@@ -169,9 +173,9 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
     animatedPlot = animation.ArtistAnimation(fig, images, interval=50, blit=True)
 
     # Enregistrer l'animation au format MP4
-    animatedPlot.save(f'animation_FxPlusFy_{Fx + Fy:.2f}.mp4', writer='ffmpeg')
+    animatedPlot.save(f'animation_tau_{it:.2f}.mp4', writer='ffmpeg')
 
-    return T
+    return T, it, max_diff_values
 
 
 # # # Initialiser le profil de température à T0
@@ -184,8 +188,32 @@ T[-1, :] = T[-2, :]
 T[:, -1] = (2*dy*h*Ta + k*T[:, -2]) / (2*dy*h + k)
 
 # Exécuter la méthode ADI
-T = ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k)
-#print(T)
+tolerance = 0.1
+T, tau, max_diff_values = ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k, tolerance)
+print()
+print(f"Avec une geometrie de longueur {Lx} x {Ly}, avec {nx} x {ny} mailles")
+print(f"et les proprietes thermiques : T1 = {T1}, h = {h}, alpha = {alpha}.")
+print()
+print(f"Le temps de relaxation est estime a {tau} unites de temps avec tolerance {tolerance}.")
+if tau < nt:
+    print("Le temps de relaxation a ete atteint avant la fin des iterations.")
+else:
+    print("Le temps de relaxation n'a pas ete atteint avant la fin des iterations.")
+
+
+# Générer un tableau de valeurs de temps
+time_values = np.linspace(0, tau, len(max_diff_values))
+
+plt.figure()
+plt.plot(time_values, max_diff_values, label='max_diff')
+plt.axhline(y=tolerance, color='r', linestyle='-', label='tolerance')
+plt.xlabel('Temps')
+plt.ylabel('Différence maximale')
+plt.title(f"Évolution de la différence maximale avec le temps (Fx = {Fx:.2f}, Fy = {Fy:.2f})")
+plt.legend()
+plt.grid(True)
+plt.savefig(f'evolution_de_la_difference_maximale_avec_le_temps_tau_{tau:.2f}.png')
+
 
 n_solutions = 11
 liste_solutions = find_first_n_solutions(Lx, h, k, n_solutions)
