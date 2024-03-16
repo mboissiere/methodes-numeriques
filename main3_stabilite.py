@@ -1,21 +1,30 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import math
 from scipy.optimize import fsolve
 
 # Paramètres
-nx, ny = 100, 50  # Mise à jour des valeurs de nx et ny
-Lx, Ly = 20, 10  # Mise à jour des valeurs de Lx et Ly
-nt = 100000
-dt = 500
+nx, ny = 100, 100  # Mise à jour des valeurs de nx et ny
+Lx, Ly = 1, 1  # Mise à jour des valeurs de Lx et Ly
+nt = 1000
+dt = 1
 dx = Lx/(nx-1)
 dy = Ly/(ny-1)
-h = 380
+h = 10
 T0, T1, Ta = 273.15, 373.15, 293.15  #Températures en Kelvin (initiale, au bord, et ambiante)
 k = 380.0  # Conductivité thermique du cuivre en W/(m·K)
 rho = 8960.0  # Densité du cuivre en kg/m³
 cp = 385.0  # Capacité thermique du cuivre en J/(kg·K)
 alpha = k / (rho * cp)  # Diffusivité thermique du cuivre en m²/s
+
+# Calculer les nombres de Fourier
+Fx = alpha*dt/dx**2
+Fy = alpha*dt/dy**2
+
+print(f'Fx + Fy = {Fx + Fy:.2f}')
+
+
 
 def equation(x, L, h, l):
     return x * np.tan(L * x) - h / l
@@ -106,7 +115,12 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
     colorbar.set_label('Température')
 
     it = 0
-    while it < nt:
+    images = []  # Liste pour stocker les images de chaque étape
+
+    # Create the Text object for the title
+    
+
+    while it <= nt:
         T_old = T.copy()
 
         # Étape 1 : résoudre dans la direction x
@@ -141,10 +155,21 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
             T[i, 1:-1] = TDMA(a, b, c, d)
 
         # Mettre à jour l'image à chaque étape
-        im.set_data(T)
-        ax.set_title(f"Profil de température à l'étape {it}")
-        plt.pause(0.01)
+        im = ax.imshow(T, cmap='hot', interpolation='nearest')
+        # plt.pause(0.01)
         it += dt
+
+        title = ax.text(0.5,1.05,"Profil de température à l'étape {0}, Fx + Fy = {1:.2f}".format(it, Fx + Fy), size=plt.rcParams["axes.titlesize"],
+                ha="center", transform=ax.transAxes, ) 
+
+        # Ajouter l'image actuelle à la liste des images
+        images.append([im, title])
+
+    # Créer l'animation à partir des images
+    animatedPlot = animation.ArtistAnimation(fig, images, interval=50, blit=True)
+
+    # Enregistrer l'animation au format MP4
+    animatedPlot.save(f'animation_FxPlusFy_{Fx + Fy:.2f}.mp4', writer='ffmpeg')
 
     return T
 
@@ -160,21 +185,21 @@ T[:, -1] = (2*dy*h*Ta + k*T[:, -2]) / (2*dy*h + k)
 
 # Exécuter la méthode ADI
 T = ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k)
-print(T)
+#print(T)
 
 n_solutions = 11
 liste_solutions = find_first_n_solutions(Lx, h, k, n_solutions)
-print(liste_solutions)
+#print(liste_solutions)
 
 
 T_analytical = generate_analytical_profile(nx, ny, Lx, Ly, T1, Ta, h, k, 3)
 T_inverse = np.flipud(T_analytical)
 Delta = T_inverse - T
-print(Delta)
+#print(Delta)
 
-plt.imshow(Delta, origin='lower')
-plt.colorbar(label='Valeurs de T')
-plt.xlabel('Axe x')
-plt.ylabel('Axe y (inversé)')
-plt.title('Delta')
-plt.show()
+#plt.imshow(Delta, origin='lower')
+#plt.colorbar(label='Valeurs de T')
+#plt.xlabel('Axe x')
+#plt.ylabel('Axe y (inversé)')
+#plt.title('Delta')
+#plt.show()

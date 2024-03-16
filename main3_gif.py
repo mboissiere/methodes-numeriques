@@ -1,5 +1,6 @@
 import numpy as np
 import matplotlib.pyplot as plt
+import matplotlib.animation as animation
 import math
 from scipy.optimize import fsolve
 
@@ -10,7 +11,7 @@ nt = 100000
 dt = 500
 dx = Lx/(nx-1)
 dy = Ly/(ny-1)
-h = 380
+h = 10
 T0, T1, Ta = 273.15, 373.15, 293.15  #Températures en Kelvin (initiale, au bord, et ambiante)
 k = 380.0  # Conductivité thermique du cuivre en W/(m·K)
 rho = 8960.0  # Densité du cuivre en kg/m³
@@ -106,7 +107,12 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
     colorbar.set_label('Température')
 
     it = 0
-    while it < nt:
+    images = []  # Liste pour stocker les images de chaque étape
+
+    # Create the Text object for the title
+    
+
+    while it <= nt:
         T_old = T.copy()
 
         # Étape 1 : résoudre dans la direction x
@@ -141,10 +147,21 @@ def ADI_method(T, nx, ny, nt, dt, dx, dy, alpha, T1, h, Ta, k):
             T[i, 1:-1] = TDMA(a, b, c, d)
 
         # Mettre à jour l'image à chaque étape
-        im.set_data(T)
-        ax.set_title(f"Profil de température à l'étape {it}")
-        plt.pause(0.01)
+        im = ax.imshow(T, cmap='hot', interpolation='nearest')
+        # plt.pause(0.01)
         it += dt
+
+        title = ax.text(0.5,1.05,"Profil de température à l'étape {0}".format(it), size=plt.rcParams["axes.titlesize"],
+                ha="center", transform=ax.transAxes, )
+
+        # Ajouter l'image actuelle à la liste des images
+        images.append([im, title])
+
+    # Créer l'animation à partir des images
+    animatedPlot = animation.ArtistAnimation(fig, images, interval=50, blit=True)
+
+    # Enregistrer l'animation au format MP4
+    animatedPlot.save('animation.mp4', writer='ffmpeg')
 
     return T
 
@@ -172,9 +189,9 @@ T_inverse = np.flipud(T_analytical)
 Delta = T_inverse - T
 print(Delta)
 
-plt.imshow(Delta, origin='lower')
-plt.colorbar(label='Valeurs de T')
-plt.xlabel('Axe x')
-plt.ylabel('Axe y (inversé)')
-plt.title('Delta')
-plt.show()
+#plt.imshow(Delta, origin='lower')
+#plt.colorbar(label='Valeurs de T')
+#plt.xlabel('Axe x')
+#plt.ylabel('Axe y (inversé)')
+#plt.title('Delta')
+#plt.show()
